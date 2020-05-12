@@ -45,6 +45,8 @@ class EngineeringWindFarmModel(WindFarmModel):
         assert blockage_deficitModel is None or isinstance(blockage_deficitModel, DeficitModel)
         assert deflectionModel is None or isinstance(deflectionModel, DeflectionModel)
         assert turbulenceModel is None or isinstance(turbulenceModel, TurbulenceModel)
+        # Assert statements are a convenient way to insert debugging assertions into a program: assert语句是一种插入调试断点到程序的一种便捷的方式。
+        # 判断一个变量是否是某个类型可以用isinstance()判断
         self.site = site
         self.windTurbines = windTurbines
         self.wake_deficitModel = wake_deficitModel
@@ -66,6 +68,11 @@ class EngineeringWindFarmModel(WindFarmModel):
             self.args4deficit = set(self.args4deficit) | set(self.turbulenceModel.args4addturb)
 
     def __str__(self):
+        """
+        在python中方法名如果是__xxxx__()的，那么就有特殊的功能，因此叫做“魔法”方法
+        当使用print输出对象的时候，只要自己定义了__str__(self)方法，那么就会打印从在这个方法中return的数据
+        :return:
+        """
         def name(o):
             return o.__class__.__name__
 
@@ -101,7 +108,7 @@ class EngineeringWindFarmModel(WindFarmModel):
             pass
         elif self.blockage_deficitModel != self:
             deficit = deficit * (dw_ijlk > 0) + \
-                (dw_ijlk < 0) * self.blockage_deficitModel.calc_deficit(dw_ijlk=dw_ijlk, **kwargs)
+                      (dw_ijlk < 0) * self.blockage_deficitModel.calc_deficit(dw_ijlk=dw_ijlk, **kwargs)
 
         return deficit
 
@@ -134,7 +141,7 @@ class EngineeringWindFarmModel(WindFarmModel):
             eps = 2 * np.finfo(np.float).eps ** 2
         else:
             eps = 0
-        cw_iil = np.sqrt(hcw_iil**2 + dh_iil**2 + eps)
+        cw_iil = np.sqrt(hcw_iil ** 2 + dh_iil ** 2 + eps)
 
         kwargs = {'localWind': lw,
                   'WS_eff_ilk': WS_eff_ilk, 'TI_eff_ilk': TI_eff_ilk,
@@ -180,7 +187,7 @@ class EngineeringWindFarmModel(WindFarmModel):
             if self.wec != 1:
                 hcw_ijl = hcw_ijl / self.wec
 
-            if I * J * K * 8 / 1024**2 > 10:
+            if I * J * K * 8 / 1024 ** 2 > 10:
                 # one wt at the time to avoid memory problems
                 deficit_ijk = np.zeros((I, J, K))
                 add_turb_ijk = np.zeros((I, J, K))
@@ -276,7 +283,8 @@ class PropagateDownwind(EngineeringWindFarmModel):
             Model describing the amount of added turbulence in the wake
         """
         EngineeringWindFarmModel.__init__(self, site, windTurbines, wake_deficitModel, superpositionModel,
-                                          blockage_deficitModel=None, deflectionModel=deflectionModel, turbulenceModel=turbulenceModel)
+                                          blockage_deficitModel=None, deflectionModel=deflectionModel,
+                                          turbulenceModel=turbulenceModel)
 
     def _calc_wt_interaction(self, localWind,
                              WS_eff_ilk, TI_eff_ilk,
@@ -403,7 +411,8 @@ class All2AllIterative(EngineeringWindFarmModel):
             maximum accepted change in WS_eff_ilk [m/s]
         """
         EngineeringWindFarmModel.__init__(self, site, windTurbines, wake_deficitModel, superpositionModel,
-                                          blockage_deficitModel=blockage_deficitModel, deflectionModel=deflectionModel, turbulenceModel=turbulenceModel)
+                                          blockage_deficitModel=blockage_deficitModel, deflectionModel=deflectionModel,
+                                          turbulenceModel=turbulenceModel)
         self.convergence_tolerance = convergence_tolerance
 
     def _calc_wt_interaction(self, localWind,

@@ -156,41 +156,42 @@ class NOJ(PropagateDownwind):
                                    turbulenceModel=turbulenceModel)
 
 
-def main():
-    if __name__ == '__main__':
-        from py_wake.examples.data.iea37._iea37 import IEA37Site
-        from py_wake.examples.data.iea37._iea37 import IEA37_WindTurbines
-        import matplotlib.pyplot as plt
+if __name__ == '__main__':
+    from py_wake.examples.data.iea37._iea37 import IEA37Site
+    from py_wake.examples.data.iea37._iea37 import IEA37_WindTurbines
+    import matplotlib.pyplot as plt
 
-        # setup site, turbines and wind farm model
-        site = IEA37Site(16)
-        x, y = site.initial_position.T
-        windTurbines = IEA37_WindTurbines()
+    # setup site, turbines and wind farm model
+    site = IEA37Site(16)
+    x, y = site.initial_position.T
+    windTurbines = IEA37_WindTurbines()
 
-        wf_model_ss = NOJ(site, windTurbines, k=0.05, superpositionModel=SquaredSum())
-        print(wf_model_ss)
-        wf_model_ls = NOJ(site, windTurbines, k=0.05, superpositionModel=LinearSum())
-        print(wf_model_ls)
-        wf_model_ms = NOJ(site, windTurbines, k=0.05, superpositionModel=MaxSum())
-        print(wf_model_ms)
+    wf_model_ss = NOJ(site, windTurbines, k=0.05, superpositionModel=SquaredSum())
+    print(wf_model_ss)
+    wf_model_ls = NOJ(site, windTurbines, k=0.05, superpositionModel=LinearSum())
+    print(wf_model_ls)
+    wf_model_ms = NOJ(site, windTurbines, k=0.05, superpositionModel=MaxSum())
+    print(wf_model_ms)
 
-        # run wind farm simulation
-        sim_res_ss = wf_model_ss(x, y)
-        sim_res_ls = wf_model_ls(x, y)
-        sim_res_ms = wf_model_ms(x, y)
+    # run wind farm simulation
+    sim_res_ss = wf_model_ss(x, y)
+    # return SimulationResult(self, localWind=localWind,
+    #                         x_i=x, y_i=y, h_i=h, type_i=type, yaw_ilk=yaw_ilk,
+    #                         wd=wd, ws=ws,
+    #                         WS_eff_ilk=WS_eff_ilk, TI_eff_ilk=TI_eff_ilk,
+    #                         power_ilk=power_ilk, ct_ilk=ct_ilk)
+    sim_res_ls = wf_model_ls(x, y)
+    sim_res_ms = wf_model_ms(x, y)
 
-        # calculate AEP
-        aep_ss = sim_res_ss.aep()
-        aep_ls = sim_res_ls.aep()
-        aep_ms = sim_res_ms.aep()
-        print(aep_ss, aep_ls, aep_ms)
-        # plot wake map
-        for sim_res, aep in [['sim_res_ss', 'aep_ss'], ['sim_res_ls', 'aep_ls'], ['sim_res_ms', 'aep_ms']]:
-            flow_map = locals()[sim_res].flow_map(wd=30, ws=9.8)
-            flow_map.plot_wake_map()
-            flow_map.plot_windturbines()
-            plt.title('%s AEP: %.2f GWh' % (aep, locals()[aep]))
-            plt.show()
-
-
-main()
+    # calculate AEP
+    aep_ss = sim_res_ss.aep()
+    aep_ls = sim_res_ls.aep()
+    aep_ms = sim_res_ms.aep()
+    print(aep_ss, aep_ls, aep_ms)
+    # plot wake map
+    for sim_res, aep in [['sim_res_ss', 'aep_ss'], ['sim_res_ls', 'aep_ls'], ['sim_res_ms', 'aep_ms']]:
+        flow_map = locals()[sim_res].flow_map(wd=30, ws=9.8)
+        flow_map.plot_wake_map()
+        flow_map.plot_windturbines()
+        plt.title('%s AEP: %.2f GWh' % (aep, locals()[aep]))
+        plt.show()

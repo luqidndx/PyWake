@@ -15,6 +15,7 @@ class WindFarmModel(ABC):
         self.windTurbines = windTurbines
 
     def __call__(self, x, y, h=None, type=0, wd=None, ws=None, yaw_ilk=None):
+        # 一个类实例也可以成为类似函数这样能直接调用的对象，只要定义的时候有__call__()方法就可以
         """Run the wind farm simulation
 
         Parameters
@@ -37,7 +38,10 @@ class WindFarmModel(ABC):
         SimulationResult
         """
         assert len(x) == len(y)
+        # assert（断言）用于判断一个表达式，在表达式条件为false的时候触发异常。
+        # 断言可以在条件不满足程序运行的情况下直接返回错误，而不必等待程序运行后出现崩溃的情况
         type, h, _ = self.windTurbines.get_defaults(len(x), type, h)
+        # return np.asarray(type_i), np.asarray(h_i), np.asarray(d_i)
         wd, ws = self.site.get_defaults(wd, ws)
 
         if len(x) == 0:
