@@ -2,7 +2,7 @@ from numpy import newaxis as na
 
 import numpy as np
 from py_wake.deficit_models import DeficitModel
-from py_wake.superposition_models import SquaredSum
+from py_wake.superposition_models import SquaredSum, LinearSum, MaxSum
 from py_wake.wind_farm_models.engineering_models import PropagateDownwind
 
 
@@ -31,7 +31,7 @@ class AreaOverlappingFactor():
         """
         wake_radius_ijlk = (self.k * dw_ijlk + D_src_il[:, na, :, na] / 2)
         if D_dst_ijl is None:
-            return wake_radius_ijlk > cw_ijlk
+            return wake_radius_ijlk > cw_ijlk  # If None destination is assumed to be a point
         else:
             return self.cal_overlapping_area_factor(wake_radius_ijlk,
                                                     (D_dst_ijl[..., na] / 2),
@@ -63,6 +63,7 @@ class AreaOverlappingFactor():
         -------
         A_ol: array:float
             Overlapping area [m^2]
+            A_ol_f: array:float, Overlapping factor
         """
         # treat all input as array
         R1, R2, d = [np.asarray(a) for a in [R1, R2, d]]
@@ -88,30 +89,30 @@ class AreaOverlappingFactor():
         def arccos_lim(x):
             return np.arccos(np.maximum(np.minimum(x, 1), -1))
 
-        alpha = arccos_lim((Rmax[mask]**2.0 + d[mask]**2 - Rmin[mask]**2) /
+        alpha = arccos_lim((Rmax[mask] ** 2.0 + d[mask] ** 2 - Rmin[mask] ** 2) /
                            (2.0 * Rmax[mask] * d[mask]))
 
-        beta = arccos_lim((Rmin[mask]**2.0 + d[mask]**2 - Rmax[mask]**2) /
+        beta = arccos_lim((Rmin[mask] ** 2.0 + d[mask] ** 2 - Rmax[mask] ** 2) /
                           (2.0 * Rmin[mask] * d[mask]))
 
         A_triangle = np.sqrt(p[mask] * (p[mask] - Rmin[mask]) *
                              (p[mask] - Rmax[mask]) * (p[mask] - d[mask]))
 
-        A_ol_f[mask] = (alpha * Rmax[mask]**2 + beta * Rmin[mask]**2 -
-                        2.0 * A_triangle) / (R2[mask]**2 * np.pi)
+        A_ol_f[mask] = (alpha * Rmax[mask] ** 2 + beta * Rmin[mask] ** 2 -
+                        2.0 * A_triangle) / (R2[mask] ** 2 * np.pi)
 
-        return A_ol_f
+        return A_ol_f  # A_ol_f: array:float, Overlapping factor
 
 
 class NOJDeficit(DeficitModel, AreaOverlappingFactor):
-    args4deficit = ['WS_ilk', 'D_src_il', 'D_dst_ijl', 'dw_ijlk', 'cw_ijlk', 'ct_ilk']
+    args4deficit = ['WS_ilk', 'D_src_il', 'D_dst_ijl', 'dw_ijlk', 'cw_ijlk', 'ct_ilk']  # 字面：参数for赤字，译为deficit计算参数
 
     def __init__(self, k=.1):
         AreaOverlappingFactor.__init__(self, k)
 
     def _calc_layout_terms(self, WS_ilk, D_src_il, D_dst_ijl, dw_ijlk, cw_ijlk, **_):
         R_src_il = D_src_il / 2
-        term_denominator_ijlk = (1 + self.k * dw_ijlk / R_src_il[:, na, :, na])**2
+        term_denominator_ijlk = (1 + self.k * dw_ijlk / R_src_il[:, na, :, na]) ** 2
         term_denominator_ijlk += (term_denominator_ijlk == 0)
         A_ol_factor_ijlk = self.overlapping_area_factor(dw_ijlk, cw_ijlk, D_src_il, D_dst_ijl)
 
@@ -120,9 +121,9 @@ class NOJDeficit(DeficitModel, AreaOverlappingFactor):
             self.layout_factor_ijlk = WS_ilk[:, na] * (dw_ijlk > 0) * (A_ol_factor_ijlk / term_denominator_ijlk)
 
     def calc_deficit(self, WS_ilk, D_src_il, D_dst_ijl, dw_ijlk, cw_ijlk, ct_ilk, **_):
-        if not self.deficit_initalized:
+        if not self.deficit_initalized:  # deficit_models.py, deficit_initalized = False
             self._calc_layout_terms(WS_ilk, D_src_il, D_dst_ijl, dw_ijlk, cw_ijlk)
-        ct_ilk = np.minimum(ct_ilk, 1)   # treat ct_ilk for np.sqrt()
+        ct_ilk = np.minimum(ct_ilk, 1)  # treat ct_ilk for np.sqrt()
         term_numerator_ilk = (1 - np.sqrt(1 - ct_ilk))
         return term_numerator_ilk[:, na] * self.layout_factor_ijlk
 
@@ -166,21 +167,30 @@ def main():
         x, y = site.initial_position.T
         windTurbines = IEA37_WindTurbines()
 
-        wf_model = NOJ(site, windTurbines)
-        print(wf_model)
+        wf_model_ss = NOJ(site, windTurbines, k=0.05, superpositionModel=SquaredSum())
+        print(wf_model_ss)
+        wf_model_ls = NOJ(site, windTurbines, k=0.05, superpositionModel=LinearSum())
+        print(wf_model_ls)
+        wf_model_ms = NOJ(site, windTurbines, k=0.05, superpositionModel=MaxSum())
+        print(wf_model_ms)
 
         # run wind farm simulation
-        sim_res = wf_model(x, y)
+        sim_res_ss = wf_model_ss(x, y)
+        sim_res_ls = wf_model_ls(x, y)
+        sim_res_ms = wf_model_ms(x, y)
 
         # calculate AEP
-        aep = sim_res.aep()
-        print(aep)
+        aep_ss = sim_res_ss.aep()
+        aep_ls = sim_res_ls.aep()
+        aep_ms = sim_res_ms.aep()
+        print(aep_ss, aep_ls, aep_ms)
         # plot wake map
-        flow_map = sim_res.flow_map(wd=30, ws=9.8)
-        flow_map.plot_wake_map()
-        flow_map.plot_windturbines()
-        plt.title('AEP: %.2f GWh' % aep)
-        plt.show()
+        for sim_res, aep in [['sim_res_ss', 'aep_ss'], ['sim_res_ls', 'aep_ls'], ['sim_res_ms', 'aep_ms']]:
+            flow_map = locals()[sim_res].flow_map(wd=30, ws=9.8)
+            flow_map.plot_wake_map()
+            flow_map.plot_windturbines()
+            plt.title('%s AEP: %.2f GWh' % (aep, locals()[aep]))
+            plt.show()
 
 
 main()
