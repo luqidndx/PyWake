@@ -41,6 +41,8 @@ class AreaOverlappingFactor():
         """ Calculate the overlapping area of two circles with radius R1 and
         R2, centers distanced d.
 
+        called by: def overlapping_area_factor()
+
         The calculation formula can be found in Eq. (A1) of :
         [Ref] Feng J, Shen WZ, Solving the wind farm layout optimization
         problem using Random search algorithm, Reneable Energy 78 (2015)
@@ -105,27 +107,35 @@ class AreaOverlappingFactor():
 
 
 class NOJDeficit(DeficitModel, AreaOverlappingFactor):
-    args4deficit = ['WS_ilk', 'D_src_il', 'D_dst_ijl', 'dw_ijlk', 'cw_ijlk', 'ct_ilk']  # 字面：参数for赤字，译为deficit计算参数
+    args4deficit = ['WS_ilk', 'D_src_il', 'D_dst_ijl', 'dw_ijlk', 'cw_ijlk', 'ct_ilk']
+    # 字面：参数for赤字，译为deficit计算参数
+    # 这些参数的计算都不在noj内完成，所以noj内定义的计算的主题，对应的参数的计算还是依赖wind_farm_modek.py和engineering_model.py
 
     def __init__(self, k=.1):
         AreaOverlappingFactor.__init__(self, k)
 
-    def _calc_layout_terms(self, WS_ilk, D_src_il, D_dst_ijl, dw_ijlk, cw_ijlk, **_):
+    def _calc_layout_terms(self, WS_ilk, D_src_il, D_dst_ijl, dw_ijlk, cw_ijlk, **_):  # 计算分布关系
         R_src_il = D_src_il / 2
         term_denominator_ijlk = (1 + self.k * dw_ijlk / R_src_il[:, na, :, na]) ** 2
         term_denominator_ijlk += (term_denominator_ijlk == 0)
+        # term_denominator_ijlk+False = term_denominator_ijlk，不等于0的等于本身，等于0的变为1
         A_ol_factor_ijlk = self.overlapping_area_factor(dw_ijlk, cw_ijlk, D_src_il, D_dst_ijl)
 
-        with np.warnings.catch_warnings():
+        with np.warnings.catch_warnings():  # 通过警告过滤器进行控制是否发出警告消息。
             np.warnings.filterwarnings('ignore', r'invalid value encountered in true_divide')
             self.layout_factor_ijlk = WS_ilk[:, na] * (dw_ijlk > 0) * (A_ol_factor_ijlk / term_denominator_ijlk)
+            #  (dw_ijlk > 0)，1*False=0，1*True=1
 
     def calc_deficit(self, WS_ilk, D_src_il, D_dst_ijl, dw_ijlk, cw_ijlk, ct_ilk, **_):
         if not self.deficit_initalized:  # deficit_models.py, deficit_initalized = False
             self._calc_layout_terms(WS_ilk, D_src_il, D_dst_ijl, dw_ijlk, cw_ijlk)
-        ct_ilk = np.minimum(ct_ilk, 1)  # treat ct_ilk for np.sqrt()
+        ct_ilk = np.minimum(ct_ilk, 1)  # treat ct_ilk for np.sqrt()，防止出现ct大于1的情况
+        # np.minimum 取对应位置上的较小值．
+        # >>> np.maximum([1, 2, 3, 4, 5], 2)
+        # array([2, 2, 3, 4, 5])
         term_numerator_ilk = (1 - np.sqrt(1 - ct_ilk))
-        return term_numerator_ilk[:, na] * self.layout_factor_ijlk
+        return term_numerator_ilk[:, na] * self.layout_factor_ijlk  # 计算出风速衰减值，m/s
+        # (1 - np.sqrt(1 - ct_ilk))* WS_ilk[:, na] *  (A_ol_factor_ijlk / (1 + self.k * dw_ijlk / R_src_il[:, na, :, na]) ** 2)
 
 
 class NOJ(PropagateDownwind):

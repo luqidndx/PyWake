@@ -188,15 +188,23 @@ class SimulationResult():
         l_indices = np.argwhere(wd[:, None] == self.wd)[:, 1]
         k_indices = np.argwhere(ws[:, None] == self.ws)[:, 1]
         X, Y, x_j, y_j, h_j = grid
+        # 为了搞清楚中间变量进行了修改
+        lWD = self.localWind.WD_ilk[:, l_indices][:, :, k_indices]
+        lWS = self.localWind.WS_ilk[:, l_indices][:, :, k_indices]
+        lTI = self.localWind.TI_ilk[:, l_indices][:, :, k_indices]
+        WSe = self.WS_eff_ilk[:, l_indices][:, :, k_indices]
+        TIe = self.TI_eff_ilk[:, l_indices][:, :, k_indices]
+        cti = self.ct_ilk[:, l_indices][:, :, k_indices]
+        
         lw_j, WS_eff_jlk, TI_eff_jlk = self.windFarmModel._flow_map(
             x_j, y_j, h_j,
             self.x_i, self.y_i, self.h_i, self.type_i, self.yaw_ilk,
-            self.localWind.WD_ilk[:, l_indices][:, :, k_indices],
-            self.localWind.WS_ilk[:, l_indices][:, :, k_indices],
-            self.localWind.TI_ilk[:, l_indices][:, :, k_indices],
-            self.WS_eff_ilk[:, l_indices][:, :, k_indices],
-            self.TI_eff_ilk[:, l_indices][:, :, k_indices],
-            self.ct_ilk[:, l_indices][:, :, k_indices],
+            lWD,
+            lWS,
+            lTI,
+            WSe,
+            TIe,
+            cti,
             wd, ws)
         if self.yaw_ilk is not None:
             yaw_ilk = self.yaw_ilk[:, l_indices][:, :, k_indices]
