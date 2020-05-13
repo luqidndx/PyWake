@@ -205,3 +205,23 @@ if __name__ == '__main__':
         flow_map.plot_windturbines()
         plt.title('%s AEP: %.2f GWh' % (aep, locals()[aep]))
         plt.show()
+
+    from py_wake.site import WaspGridSite
+    from py_wake.wind_turbines import WindTurbines
+    import pandas as pd
+
+    layout = pd.read_table('/Users/luqi/开发/PyWake2_LQ/py_wake/examples/CGN_RD/site/cgn_layout.txt')
+    site_cgn = WaspGridSite.from_wasp_grd('/Users/luqi/开发/PyWake2_LQ/py_wake/examples/CGN_RD/grd', speedup_using_pickle=False)
+    wtg_g4 = WindTurbines.from_WAsP_wtg('/Users/luqi/开发/PyWake2_LQ/py_wake/examples/CGN_RD/power/SWT-4.0-130-CGN 1.223.wtg')
+    type_i, h_i, D_i = wtg_g4.get_defaults(len(layout['X']))
+    lw = site_cgn.local_wind(np.array(layout['X']), np.array(layout['Y']), h_i)  # localwind
+    cgn_model_ss = NOJ(site_cgn, wtg_g4, k=0.05, superpositionModel=SquaredSum())
+    cgn_sim_res_ss = cgn_model_ss(np.array(layout['X']), np.array(layout['Y']))
+    cgn_aep_grs = cgn_sim_res_ss.aep(with_wake_loss=False)
+    cgn_aep_net = cgn_sim_res_ss.aep()
+    print(cgn_aep_grs, cgn_aep_net, '%.2f ' % ((1-cgn_aep_net/cgn_aep_grs)*100) + '%')
+    cgn_flow_map = cgn_sim_res_ss.flow_map(wd=30, ws=10)
+    cgn_flow_map.plot_wake_map()
+    cgn_flow_map.plot_windturbines()
+    plt.title('%s AEP: %.2f GWh' % ('CGN NET', cgn_aep_net))
+    plt.show()

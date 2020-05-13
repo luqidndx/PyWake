@@ -186,10 +186,11 @@ class SimulationResult():
             assert np.all(np.isin(ws, self.ws)), "All ws=%s not in simulation result (ws=%s)" % (ws, self.ws)
         wd, ws = np.atleast_1d(wd), np.atleast_1d(ws)
         l_indices = np.argwhere(wd[:, None] == self.wd)[:, 1]
+        # wd对应函数参数3， self.wd是对应classSimulationResult初始化后的结果
         k_indices = np.argwhere(ws[:, None] == self.ws)[:, 1]
         X, Y, x_j, y_j, h_j = grid
         # 为了搞清楚中间变量进行了修改
-        lWD = self.localWind.WD_ilk[:, l_indices][:, :, k_indices]
+        lWD = self.localWind.WD_ilk[:, l_indices][:, :, :]  # 源代码lWD = self.localWind.WD_ilk[:, l_indices][:, :, k_indices]
         lWS = self.localWind.WS_ilk[:, l_indices][:, :, k_indices]
         lTI = self.localWind.TI_ilk[:, l_indices][:, :, k_indices]
         WSe = self.WS_eff_ilk[:, l_indices][:, :, k_indices]
